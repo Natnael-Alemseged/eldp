@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SHOP_ADMIN
+  TRANSLATOR
+}
+
+enum LanguagePair {
+  AM_EN
+  EN_AM
+  AM_OR
+  EN_OR
+}
+
+enum TrustTier {
+  CANDIDATE
+  GOLD
+}
+
+model Shop {
+  id           String         @id @default(cuid())
+  name         String
+  dataRightsOk Boolean        @default(false)
+  qualityGrade Float?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  users        ShopUser[]
+  projects     Project[]
+  glossary     GlossaryTerm[]
+  tmxImports   TMXImport[]
+}
+
+model ShopUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Project {
+  id        String    @id @default(cuid())
+  name      String
+  shopId    String
+  shop      Shop      @relation(fields: [shopId], references: [id])
+  segments  Segment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Segment {
+  id               String            @id @default(cuid())
+  sourceText       String
+  targetText       String?
+  languagePair     LanguagePair
+  trustTier        TrustTier         @default(CANDIDATE)
+  qualityGrade     Float?
+  anonymized       Boolean           @default(false)
+  provenance       String?
+  version          Int               @default(1)
+  projectId        String
+  project          Project           @relation(fields: [projectId], references: [id])
+  edits            SegmentEdit[]
+  validationEvents ValidationEvent[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([projectId])
+  @@index([languagePair, trustTier])
+}
+
+model SegmentEdit {
+  id              String   @id @default(cuid())
+  segmentId       String
+  segment         Segment  @relation(fields: [segmentId], references: [id])
+  aiSuggestion    String?
+  humanCorrection String?
+  reviewerEmail   String
+  accepted        Boolean  @default(false)
+  editDistance    Int?
+  createdAt       DateTime @default(now())
+
+  @@index([segmentId])
+}
+
+model GlossaryTerm {
+  id           String       @id @default(cuid())
+  shopId       String
+  shop         Shop         @relation(fields: [shopId], references: [id])
+  sourceTerm   String
+  targetTerm   String
+  languagePair LanguagePair
+  notes        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([shopId, sourceTerm, languagePair])
+  @@index([shopId, languagePair])
+}
+
+model TMXImport {
+  id           String   @id @default(cuid())
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id])
+  filename     String
+  segmentCount Int
+  importedAt   DateTime @default(now())
+}
+
+model ValidationEvent {
+  id           String       @id @default(cuid())
+  segmentId    String
+  segment      Segment      @relation(fields: [segmentId], references: [id])
+  eventType    String
+  languagePair LanguagePair
+  timeSpentMs  Int?
+  editDistance Int?
+  metadata     Json?
+  createdAt    DateTime     @default(now())
+
+  @@index([segmentId])
+  @@index([eventType, createdAt])
+}
