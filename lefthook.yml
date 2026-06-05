@@ -1,0 +1,38 @@
+# Lefthook configuration — https://github.com/evilmartians/lefthook
+# Hooks run automatically on git commit. Install with: pnpm lefthook install
+
+pre-commit:
+  parallel: true
+  commands:
+    biome-check:
+      glob: "*.{ts,tsx,json}"
+      run: pnpm biome check --write {staged_files}
+      stage_fixed: true
+      fail_text: "Biome found lint/format errors. Run `pnpm check` to auto-fix."
+
+    type-check:
+      run: pnpm tsc --noEmit --pretty
+      fail_text: "TypeScript type errors found. Fix before committing."
+
+    tests:
+      run: pnpm vitest run
+      fail_text: "Tests failed. Fix before committing."
+
+    secret-scan:
+      run: bash scripts/hooks/secret-scan.sh
+      fail_text: "Secrets detected in staged files. Remove them before committing."
+
+commit-msg:
+  commands:
+    check-message:
+      run: bash scripts/hooks/check-commit-msg.sh {1}
+
+pre-push:
+  commands:
+    build:
+      run: pnpm build
+      fail_text: "Build failed. Fix before pushing."
+
+    tests:
+      run: pnpm test
+      fail_text: "Tests failed. Fix before pushing."
