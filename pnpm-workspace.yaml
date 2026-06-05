@@ -3,8 +3,11 @@ packages:
 
 onlyBuiltDependencies:
   - "@biomejs/biome"
+  - "@prisma/engines"
   - esbuild
   - lefthook
   - msw
+  - prisma
+  - puppeteer
   - sharp
   - unrs-resolver
